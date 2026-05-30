@@ -88,6 +88,20 @@ A SQLite file (`DB_PATH`, default `notifications.db`) stores two tables that bot
 
 On the first poll of a chat after startup, every recent message (~30) is recorded silently — no notifications for backlog. Rows older than `RETENTION_DAYS` (default 60) are pruned at startup and once every 24 hours.
 
+## Running under PM2
+
+Once you have logged in interactively (so `TG_SESSION` is filled in `.env`), you can keep the watcher running under [PM2](https://pm2.keymetrics.io/):
+
+```bash
+npm i -g pm2
+pm2 start ecosystem.config.cjs
+pm2 logs telegram_notify          # follow output
+pm2 restart telegram_notify
+pm2 save && pm2 startup           # auto-start on reboot
+```
+
+The first run cannot be under PM2 because Telegram prompts for your phone code via stdin — do `npm start` once interactively, then switch to PM2.
+
 ## Notes
 
 - Matching is a case-insensitive substring match — `канон` will match inside `сканировать`. Tune `KEYWORDS` accordingly, or extend `server.ts` with word-boundary regex if needed.
