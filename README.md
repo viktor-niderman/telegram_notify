@@ -31,6 +31,8 @@ Fill in `.env`:
 | `MY_CHAT_ID` | Your numeric chat ID where notifications are delivered |
 | `KEYWORDS` | Comma-separated keywords (case-insensitive substring match) |
 | `POLL_INTERVAL_MS` | How often watched chats are polled. Default `30000` (30 s) |
+| `DB_PATH` | SQLite file path for dedup state. Default `notifications.db` |
+| `RETENTION_DAYS` | How many days to keep dedup rows before pruning. Default `60` |
 
 ## First run
 
@@ -75,7 +77,16 @@ For each `WATCH_CHAT_IDS` entry the watcher uses **two paths**:
 1. **Real-time** — `addEventHandler` on the user session. Reacts instantly when a `UpdateNewChannelMessage` arrives.
 2. **Polling** — every `POLL_INTERVAL_MS` it calls `client.getMessages(chat, { limit: 30 })` and processes anything new.
 
-The polling path exists because gramjs 2.26.22 does not auto-recover from per-channel pts drift — busy supergroups occasionally stop receiving push updates and the only reliable fix is to poll. Both paths share a per-chat seen-IDs set so each message is notified at most once. On the very first poll the IDs are recorded without notification so you do not get spammed by chat history.
+The polling path exists because gramjs 2.26.22 does not auto-recover from per-channel pts drift — busy supergroups occasionally stop receiving push updates and the only reliable fix is to poll.
+
+## Deduplication
+
+A SQLite file (`DB_PATH`, default `notifications.db`) stores two tables that both paths consult before sending a notification:
+
+- `notified_messages (chat_id, message_id, created_at)` — survives restarts; the same physical message will never trigger a second notification.
+- `notified_hashes (hash, sender_id, created_at)` — hash is `sha256(senderId \x00 normalizedText)` where normalization lowercases the text and collapses whitespace. If the same sender posts the same content again (even in another chat), it is skipped.
+
+On the first poll of a chat after startup, every recent message (~30) is recorded silently — no notifications for backlog. Rows older than `RETENTION_DAYS` (default 60) are pruned at startup and once every 24 hours.
 
 ## Notes
 

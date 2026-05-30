@@ -10,5 +10,5 @@
     "strict": true,
     "noImplicitAny": false
   },
-  "include": ["server.ts"]
+  "include": ["server.ts", "src/**/*.ts"]
 }
