@@ -2,7 +2,7 @@
   "name": "telegram_notify",
   "version": "1.0.0",
   "description": "Watch Telegram groups for keywords and notify yourself via a bot.",
-  "license": "ISC",
+  "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=18.18"
