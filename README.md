@@ -30,6 +30,7 @@ Fill in `.env`:
 | `NOTIFY_BOT_TOKEN` | Bot token from BotFather |
 | `MY_CHAT_ID` | Your numeric chat ID where notifications are delivered |
 | `KEYWORDS` | Comma-separated keywords (case-insensitive substring match) |
+| `POLL_INTERVAL_MS` | How often watched chats are polled. Default `30000` (30 s) |
 
 ## First run
 
@@ -67,8 +68,17 @@ https://t.me/c/9876543210/4521
 
 The link points to the original message (works for supergroups and channels you are a member of).
 
+## How it monitors
+
+For each `WATCH_CHAT_IDS` entry the watcher uses **two paths**:
+
+1. **Real-time** — `addEventHandler` on the user session. Reacts instantly when a `UpdateNewChannelMessage` arrives.
+2. **Polling** — every `POLL_INTERVAL_MS` it calls `client.getMessages(chat, { limit: 30 })` and processes anything new.
+
+The polling path exists because gramjs 2.26.22 does not auto-recover from per-channel pts drift — busy supergroups occasionally stop receiving push updates and the only reliable fix is to poll. Both paths share a per-chat seen-IDs set so each message is notified at most once. On the very first poll the IDs are recorded without notification so you do not get spammed by chat history.
+
 ## Notes
 
 - Matching is a case-insensitive substring match — `канон` will match inside `сканировать`. Tune `KEYWORDS` accordingly, or extend `server.ts` with word-boundary regex if needed.
-- Only new messages are matched. Edits and history are not scanned.
+- Message edits and pre-startup history are not scanned.
 - `npm run dev` reloads on file changes.
